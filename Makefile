@@ -1,8 +1,9 @@
 .PHONY: clean all
 
 CXX=g++
-FLAGS=-march=native -O2
-OPTFLAGS=-ftree-vectorize -mprefer-vector-width=256 -ffast-math
+FLAGS=-march=native -O3 -ffast-math
+BASEFLAGS=-fno-tree-vectorize
+OPTFLAGS=-mprefer-vector-width=256
 
 SRC=$(wildcard ./benchmark/*.cpp)
 OBJ=$(patsubst %.cpp, %.o, ${SRC})
@@ -21,7 +22,7 @@ main.o: main.cpp
 	${CXX} ${FLAGS} -O0 -I./ -c -o $@ $<
 
 ${OBJ}: %.o:%.cpp
-	${CXX} ${FLAGS} -I./ -c -o $@ $<
+	${CXX} ${FLAGS} ${BASEFLAGS} -I./ -c -o $@ $<
 
 ${OBJVEC}: %.vec.o:%.cpp
 	${CXX} ${FLAGS} ${OPTFLAGS} -I./ -c -o $@ $<

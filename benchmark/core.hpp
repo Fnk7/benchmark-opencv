@@ -89,8 +89,8 @@ static void normHamming(uchar *a, uchar *b, int *_result, int n)
     *_result = result;
 }
 
-template <typename ST, typename DT>
-void normL1(ST *src, uchar *mask, DT *_result, int len, int cn)
+template <typename ST, typename DT, int cn>
+void normL1(ST *src, uchar *mask, DT *_result, int len)
 {
     // 255 * len * cn < max int value
     // len = 1080 * 1920
@@ -112,8 +112,8 @@ void normL1(ST *src, uchar *mask, DT *_result, int len, int cn)
     *_result = result;
 }
 
-template <typename ST, typename DT>
-void normL2(ST *src, uchar *mask, DT *_result, int len, int cn)
+template <typename ST, typename DT, int cn>
+void normL2(ST *src, uchar *mask, DT *_result, int len)
 {
     // 255 * 255 * len * cn < max int value
     // len = 10922 (if is_same<ST, uchar> and is_same<DT, int>)

@@ -4,13 +4,13 @@
 
 auto normL2_uchar()
 {
-    auto func = normL2<uchar, int>;
+    auto func = normL2<uchar, int, 3>;
     return func;
 }
 
 auto normL2_float()
 {
-    auto func = normL2<float, float>;
+    auto func = normL2<float, float, 3>;
     return func;
 }
 
@@ -22,13 +22,13 @@ void normL2()
         auto f1 = normL2_uchar();
         int result;
         // hw should be lower than 10922, otherwise overflow, but not influence time measurement
-        TEST(f1(a, nullptr, &(result = 0), hw, cn), (double)result / hwc);
-        TEST(f1(a, ud, &(result = 0), hw, cn), (double)result / hwc);
+        TEST(f1(a, nullptr, &(result = 0), hw), (double)result / hwc);
+        TEST(f1(a, ud, &(result = 0), hw), (double)result / hwc);
     }
     {
         float result;
         auto f2 = normL2_float();
-        TEST(f2(x, nullptr, &(result = 0), hw, cn), result / hwc);
-        TEST(f2(x, ud, &(result = 0), hw, cn), result / hwc);
+        TEST(f2(x, nullptr, &(result = 0), hw), result / hwc);
+        TEST(f2(x, ud, &(result = 0), hw), result / hwc);
     }
 }
