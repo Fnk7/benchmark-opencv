@@ -31,11 +31,7 @@ float *x, *y, *z, *fd;
 
 int main()
 {
-    const int h = 540;
-    const int w = 960;
-    const int cn = 3;
-    const int hw = h * w;
-    const int hwc = hw * cn;
+    cout << "h=" << h << " w=" << w << endl; 
     double result;
     int result2;
     a = (uchar *)aligned_alloc(32, hwc);

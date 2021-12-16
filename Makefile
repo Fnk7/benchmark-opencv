@@ -1,7 +1,10 @@
+WIDTH=1920
+HEIGHT=1080
+
 .PHONY: clean all
 
 CXX=clang++
-FLAGS=-march=native -O3 -ffast-math
+FLAGS=-march=native -O3 -ffast-math -DINPUT_WIDTH=${WIDTH} -DINPUT_HEIGHT=${HEIGHT}
 BASEFLAGS=-fno-tree-vectorize
 SSEFLAGS=-mprefer-vector-width=128 -mno-avx2
 AVX2FLAGS=-mprefer-vector-width=256 -mno-avx512f
@@ -14,7 +17,7 @@ OBJAVX2=$(patsubst %.cpp, %.avx2.o, ${SRC})
 OBJAVX512=$(patsubst %.cpp, %.avx512.o, ${SRC})
 
 all: clean opencv-sse opencv-avx2 opencv-avx512 opencv-base
-	@echo ${SRC}
+	@echo ${FLAGS}
 
 opencv-base: main.o ${OBJ}
 	${CXX} ${FLAGS} -O0 -o $@ $^
