@@ -205,7 +205,7 @@ static void pyrDown(uchar *_src, uchar *_dst, int src_w, int src_h, int dst_w, i
     }
 }
 
-template<typename ST, int cn>
+template <typename ST, int cn>
 void morph_row_filter(ST *src, ST *dst, int width)
 {
     // src and dst is a row of Mat image
@@ -242,7 +242,7 @@ void morph_row_filter(ST *src, ST *dst, int width)
     }
 }
 
-template<typename ST>
+template <typename ST>
 static void morph_col_filter(ST **_src, ST *dst, int dststep, int count, int width)
 {
     // dststep = 1920 * 3
@@ -260,7 +260,7 @@ static void morph_col_filter(ST **_src, ST *dst, int dststep, int count, int wid
         {
             ST s0 = src[1][i];
             // for (k = 2; k < _ksize; k++)
-                s0 = std::min(s0, src[2][i]);
+            s0 = std::min(s0, src[2][i]);
             D[i] = std::min(s0, src[0][i]);
             D[i + dststep] = std::min(s0, src[k][i]);
         }
@@ -272,10 +272,221 @@ static void morph_col_filter(ST **_src, ST *dst, int dststep, int count, int wid
         {
             ST s0 = src[0][i];
             // for (k = 1; k < _ksize; k++)
-                s0 = std::min(s0, src[1][i]);
-                s0 = std::min(s0, src[2][i]);
+            s0 = std::min(s0, src[1][i]);
+            s0 = std::min(s0, src[2][i]);
             D[i] = s0;
         }
     }
 }
 
+template <typename ST, int cn, int ksize>
+void row_filter(ST *src, ST *dst, ST *kernel, int width)
+{
+    int _ksize = ksize;
+    const ST *kx = kernel;
+    const ST *S = (ST *)src;
+    ST *D = (ST *)dst;
+    int i, k;
+    width *= cn;
+#ifdef ORIGIN
+    for (i = 0; i < width; i++)
+    {
+        S = (const ST *)src + i;
+        ST s0 = kx[0] * S[0];
+        for (k = 1; k < _ksize; k++)
+        {
+            S += cn;
+            s0 += kx[k] * S[0];
+        }
+        D[i] = s0;
+    }
+#else
+    for (i = 0; i < width; i++)
+    {
+        D[i] = S[i] * kx[0];
+    }
+    for (k = 1; k < _ksize; k++)
+    {
+        for (i = 0; i < width; i++)
+        {
+            D[i] += S[i] * kx[k];
+        }
+    }
+#endif
+}
+
+template <typename ST, int ksize>
+void column_filter(const ST **src, ST *dst, ST *kernel, ST delta, int count, int width)
+{
+    const ST *ky = kernel;
+    ST _delta = delta;
+    int _ksize = ksize;
+    int i, k;
+    int dststep = width; // no padding
+    for (; count--; dst += dststep, src++)
+    {
+        ST *D = (ST *)dst;
+#ifdef ORIGIN
+        for (i = 0; i < width; i++)
+        {
+            ST s0 = ky[0] * ((const ST *)src[0])[i] + _delta;
+            for (k = 1; k < _ksize; k++)
+                s0 += ky[k] * ((const ST *)src[k])[i];
+            D[i] = s0;
+        }
+#else
+        for (i = 0; i < width; i++)
+            D[i] = _delta;
+        for (k = 0; k < _ksize; k++)
+        {
+            const ST *src_k = (const ST *)src[k];
+            for (i = 0; i < width; i++)
+                D[i] += ky[k] * src_k[i];
+        }
+#endif
+    }
+}
+
+template <typename ST, int ksize, bool symmetrical>
+void symm_column_filter(const ST **src, ST *dst, ST *kernel, ST delta, int count, int width)
+{
+    int ksize2 = ksize / 2;
+    const ST *ky = kernel + ksize2;
+    int i, k;
+    ST _delta = delta;
+    src += ksize2;
+    int dststep = width; // no padding
+    if (symmetrical)
+    {
+        for (; count--; dst += dststep, src++)
+        {
+            ST *D = (ST *)dst;
+#ifdef ORIGIN
+            for (i = 0; i < width; i++)
+            {
+                ST s0 = ky[0] * ((const ST *)src[0])[i] + _delta;
+                for (k = 1; k <= ksize2; k++)
+                    s0 += ky[k] * (((const ST *)src[k])[i] + ((const ST *)src[-k])[i]);
+                D[i] = s0;
+            }
+#else
+            for (i = 0; i < width; i++)
+                D[i] = ky[0] * ((const ST *)src[0])[i] + _delta;
+            for (k = 1; k <= ksize2; k++)
+            {
+                const ST *src_k = (const ST *)src[k];
+                const ST *src_mk = (const ST *)src[-k];
+                for (i = 0; i < width; i++)
+                    D[i] += ky[k] * (src_k[i] + src_mk[i]);
+            }
+#endif
+        }
+    }
+    else
+    {
+        for (; count--; dst += dststep, src++)
+        {
+            ST *D = (ST *)dst;
+#ifdef ORIGIN
+            for (i = 0; i < width; i++)
+            {
+                ST s0 = _delta;
+                for (k = 1; k <= ksize2; k++)
+                    s0 += ky[k] * (((const ST *)src[k])[i] - ((const ST *)src[-k])[i]);
+                D[i] = s0;
+            }
+#else
+            for (i = 0; i < width; i++)
+                D[i] = _delta;
+            for (k = 1; k <= ksize2; k++)
+            {
+                const ST *src_k = (const ST *)src[k];
+                const ST *src_mk = (const ST *)src[-k];
+                for (i = 0; i < width; i++)
+                    D[i] += ky[k] * (src_k[i] - src_mk[i]);
+            }
+#endif
+        }
+    }
+}
+
+#ifdef USE_INTRINSICS
+#include <arm_sve.h>
+template <int cn, int ksize>
+void row_filter_intrinsics(const float *_src, float *_dst, float *kernel, int width)
+{
+    int _ksize = ksize;
+    const float *src0 = (const float *)_src;
+    float *dst = (float *)_dst;
+    const float *_kx = kernel;
+    int i = 0, k;
+    width *= cn;
+
+    svbool_t pg = svwhilelt_b32(i, width);
+    while (svptest_any(svptrue_b32(), pg))
+    {
+        const float *src = src0 + i;
+        svfloat32_t s0 = svld1(pg, src);
+        s0 = svmul_x(pg, s0, _kx[0]);
+        src += cn;
+        for (k = 1; k < _ksize; k++, src += cn)
+        {
+            svfloat32_t sk = svld1(pg, src);
+            s0 = svmla_x(pg, s0, sk, _kx[k]);
+        }
+        svst1(pg, dst + i, s0);
+        i += svcntw();
+        pg = svwhilelt_b32(i, width);
+    }
+}
+
+template <int cn, int ksize, bool symmetrical>
+void symm_column_filter_intrinsics(const float **_src, float *_dst, float *kernel, int width)
+{
+
+    int ksize2 = ksize / 2;
+    const float *ky = kernel;
+    int i = 0, k;
+    const float **src = (const float **)_src;
+    float *dst = (float *)_dst;
+
+    svfloat32_t d4 = svdup_f32(delta);
+    if (symmetrical)
+    {
+        svbool_t pg = svwhilelt_b32(i, width);
+        while (svptest_any(svptrue_b32(), pg))
+        {
+            svfloat32_t s0 = svld1(pg, src[0] + i);
+            s0 = svmla_x(pg, d4, s0, ky[0]);
+            for (k = 1; k <= ksize2; k++)
+            {
+                svfloat32_t sk = svld1(pg, src[k] + i);
+                svfloat32_t smk = svld1(pg, src[-k] + i);
+                sk = svadd_x(pg, sk, smk);
+                s0 = svmla_x(pg, s0, sk, ky[k]);
+            }
+            svst1(pg, dst + i, s0);
+            i += svcntw();
+            pg = svwhilelt_b32(i, width);
+        }
+    }
+    else
+    {
+        svbool_t pg = svwhilelt_b32(i, width);
+        while (svptest_any(svptrue_b32(), pg))
+        {
+            svfloat32_t s0 = d4;
+            for (k = 1; k <= ksize2; k++)
+            {
+                svfloat32_t sk = svld1(pg, src[k] + i);
+                svfloat32_t smk = svld1(pg, src[-k] + i);
+                sk = svsub_x(pg, sk, smk);
+                s0 = svmla_x(pg, s0, sk, ky[k]);
+            }
+            svst1(pg, dst + i, s0);
+            i += svcntw();
+            pg = svwhilelt_b32(i, width);
+        }
+    }
+}
+#endif

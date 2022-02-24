@@ -65,6 +65,8 @@ int main()
     TEST(pyramids);
     TEST(morph);
 
+    TEST(filter);
+
     // // pyrUp(a, ud, w, h, w * 2, h * 2, 1);
     // // checksum(ud, hw * 4, &result);
     // // cout << "pyrUp\t\t" << result << endl;

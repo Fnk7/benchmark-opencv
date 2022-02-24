@@ -25,3 +25,5 @@ void transpose();
 
 void pyramids();
 void morph();
+
+void filter();
