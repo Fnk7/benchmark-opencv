@@ -101,8 +101,8 @@ static void pyrUp(uchar *src, uchar *dst, int src_w, int src_h, int dst_w, int d
             dst0[x] = t0;
         }
     }
-    delete buf;
-    delete dtab;
+    delete[] buf;
+    delete[] dtab;
 }
 
 static void pyrDown(uchar *_src, uchar *_dst, int src_w, int src_h, int dst_w, int dst_h, int cn, int range_start, int range_end)

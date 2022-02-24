@@ -1,7 +1,15 @@
 #include "common.hpp"
 
-const int h = 540;
-const int w = 960;
+#ifndef INPUT_WIDTH
+#define INPUT_WIDTH 1920
+#endif
+
+#ifndef INPUT_HEIGHT
+#define INPUT_HEIGHT 1080
+#endif
+
+const int h = INPUT_HEIGHT;
+const int w = INPUT_WIDTH;
 const int cn = 3;
 const int hw = h * w;
 const int hwc = hw * cn;
